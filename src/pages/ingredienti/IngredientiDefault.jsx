@@ -39,10 +39,10 @@ function BtnAllergene({ label, selezionato, onClick }) {
 
 export default function IngredientiDefault() {
   const queryClient = useQueryClient()
-  const [showForm, setShowForm]           = useState(false)
-  const [editId, setEditId]               = useState(null)
-  const [cerca, setCerca]                 = useState('')
-  const [errore, setErrore]               = useState('')
+  const [showForm, setShowForm]               = useState(false)
+  const [editId, setEditId]                   = useState(null)
+  const [cerca, setCerca]                     = useState('')
+  const [errore, setErrore]                   = useState('')
   const [confermaElimina, setConfermaElimina] = useState(null)
   const [form, setForm] = useState({
     descrizione: '', prezzo: '0', nota: '', allergeni: []
@@ -113,8 +113,6 @@ export default function IngredientiDefault() {
   const ingredienti = (data?.data || []).filter(i =>
     i.descrizione.toLowerCase().includes(cerca.toLowerCase())
   )
-  const attivi    = ingredienti.filter(i => i.attivo)
-  const disattivi = ingredienti.filter(i => !i.attivo)
   const duplicato = isDuplicato(form.descrizione)
 
   return (
@@ -220,68 +218,49 @@ export default function IngredientiDefault() {
           </div>
         )}
 
-        {/* Lista */}
+        {/* Lista unica — niente Attivi/Disattivati */}
         {isLoading ? (
           <div className="text-center py-12 text-gray-400">Caricamento...</div>
         ) : (
-          <>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
-              <div className="px-5 py-3 border-b border-gray-100">
-                <h3 className="font-semibold text-gray-900 text-sm">
-                  Attivi <span className="font-normal text-gray-400">({attivi.length})</span>
-                </h3>
-              </div>
-              <div className="divide-y divide-gray-50">
-                {attivi.length === 0 && <p className="px-5 py-4 text-gray-400 text-sm">Nessun ingrediente</p>}
-                {attivi.map(ing => (
-                  <div key={ing.id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-gray-900 text-sm">{ing.descrizione}</span>
-                        {(ing.allergeni || []).map(aId => {
-                          const a = ALLERGENI_LIST.find(x => x.id === aId)
-                          return <span key={aId} className="px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-xs">{a?.label || aId}</span>
-                        })}
-                      </div>
-                      {ing.nota && <p className="text-gray-400 text-xs mt-0.5">{ing.nota}</p>}
-                    </div>
-                    <span className="text-gray-500 text-xs font-medium flex-shrink-0 w-16 text-right">
-                      {parseFloat(ing.prezzo) > 0 ? `+€${parseFloat(ing.prezzo).toFixed(2)}` : 'Incluso'}
-                    </span>
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <button onClick={() => startEdit(ing)}
-                        className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium transition">
-                        Modifica
-                      </button>
-                      <button onClick={() => setConfermaElimina(ing)}
-                        className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition">
-                        Elimina
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3 border-b border-gray-100">
+              <h3 className="font-semibold text-gray-900 text-sm">
+                Ingredienti <span className="font-normal text-gray-400">({ingredienti.length})</span>
+              </h3>
             </div>
-
-            {disattivi.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <div className="px-5 py-3 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-500 text-sm">Disattivati ({disattivi.length})</h3>
-                </div>
-                <div className="divide-y divide-gray-50">
-                  {disattivi.map(ing => (
-                    <div key={ing.id} className="px-5 py-3 flex items-center gap-3">
-                      <span className="flex-1 text-gray-400 text-sm">{ing.descrizione}</span>
-                      <button onClick={() => setConfermaElimina(ing)}
-                        className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition">
-                        Elimina
-                      </button>
+            <div className="divide-y divide-gray-50">
+              {ingredienti.length === 0 && (
+                <p className="px-5 py-4 text-gray-400 text-sm">Nessun ingrediente</p>
+              )}
+              {ingredienti.map(ing => (
+                <div key={ing.id} className="px-5 py-3 flex items-center gap-3 hover:bg-gray-50 transition">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-gray-900 text-sm">{ing.descrizione}</span>
+                      {(ing.allergeni || []).map(aId => {
+                        const a = ALLERGENI_LIST.find(x => x.id === aId)
+                        return <span key={aId} className="px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded text-xs">{a?.label || aId}</span>
+                      })}
                     </div>
-                  ))}
+                    {ing.nota && <p className="text-gray-400 text-xs mt-0.5">{ing.nota}</p>}
+                  </div>
+                  <span className="text-gray-500 text-xs font-medium flex-shrink-0 w-16 text-right">
+                    {parseFloat(ing.prezzo) > 0 ? `+€${parseFloat(ing.prezzo).toFixed(2)}` : 'Incluso'}
+                  </span>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button onClick={() => startEdit(ing)}
+                      className="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium transition">
+                      Modifica
+                    </button>
+                    <button onClick={() => setConfermaElimina(ing)}
+                      className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition">
+                      Elimina
+                    </button>
+                  </div>
                 </div>
-              </div>
-            )}
-          </>
+              ))}
+            </div>
+          </div>
         )}
       </div>
 
@@ -302,7 +281,11 @@ export default function IngredientiDefault() {
                 Annulla
               </button>
               <button
-                onClick={() => { elimina.mutate(confermaElimina.id); setConfermaElimina(null) }}
+                onClick={() => {
+                  const ingId = confermaElimina.id
+                  setConfermaElimina(null)
+                  elimina.mutate(ingId)
+                }}
                 className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 transition">
                 Elimina
               </button>
