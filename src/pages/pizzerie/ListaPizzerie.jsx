@@ -4,9 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import api from '@/lib/api'
 
 export default function ListaPizzerie() {
-  const [cerca, setCerca]         = useState('')
-  const navigate                  = useNavigate()
-  const queryClient               = useQueryClient()
+  const [cerca, setCerca]   = useState('')
+  const navigate            = useNavigate()
+  const queryClient         = useQueryClient()
 
   const { data, isLoading } = useQuery({
     queryKey: ['pizzerie', cerca],
@@ -36,7 +36,7 @@ export default function ListaPizzerie() {
         </div>
         <button
           onClick={() => navigate('/pizzerie/nuova')}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition shadow-lg shadow-blue-200"
+          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition shadow-lg shadow-blue-200 text-sm"
         >
           + Nuova pizzeria
         </button>
@@ -49,7 +49,7 @@ export default function ListaPizzerie() {
           placeholder="Cerca per nome, città..."
           value={cerca}
           onChange={e => setCerca(e.target.value)}
-          className="w-full max-w-md px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+          className="w-full max-w-md px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
         />
       </div>
 
@@ -62,7 +62,7 @@ export default function ListaPizzerie() {
           <p className="text-gray-500 font-medium">Nessuna pizzeria trovata</p>
           <button
             onClick={() => navigate('/pizzerie/nuova')}
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium"
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-medium hover:bg-blue-500 transition"
           >
             Crea la prima pizzeria
           </button>
@@ -96,12 +96,19 @@ export default function ListaPizzerie() {
                   {p.telefono && ` · ${p.telefono}`}
                 </p>
                 <p className="text-gray-400 text-xs mt-1">
-                  Slug: {p.slug} · {p.tipo_pizzeria || 'asporto'}
+                  Slug: <span className="font-mono">{p.slug}</span>
+                  {p.tipo_pizzeria && ` · ${p.tipo_pizzeria}`}
                 </p>
               </div>
 
               {/* Azioni */}
               <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => navigate(`/pizzerie/${p.id}/utenti`)}
+                  className="px-4 py-2 bg-purple-50 hover:bg-purple-100 text-purple-600 rounded-xl text-sm font-medium transition"
+                >
+                  Utenti
+                </button>
                 <button
                   onClick={() => navigate(`/pizzerie/${p.id}`)}
                   className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition"
