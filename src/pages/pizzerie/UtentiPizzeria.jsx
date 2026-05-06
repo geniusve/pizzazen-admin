@@ -6,9 +6,9 @@ import api from '@/lib/api'
 const inputCls = "w-full h-10 px-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 text-sm appearance-none"
 
 const TIPI = {
-  admin_pizzeria: { label: 'Admin',         color: 'bg-purple-100 text-purple-700' },
-  cassiere:       { label: 'Cassiere',      color: 'bg-blue-100 text-blue-700' },
-  visualizzatore: { label: 'Visualizzatore',color: 'bg-gray-100 text-gray-600' },
+  admin_pizzeria: { label: 'Admin',          color: 'bg-purple-100 text-purple-700' },
+  cassiere:       { label: 'Cassiere',       color: 'bg-blue-100 text-blue-700' },
+  visualizzatore: { label: 'Visualizzatore', color: 'bg-gray-100 text-gray-600' },
 }
 
 const FORM_VUOTO = {
@@ -21,11 +21,11 @@ export default function UtentiPizzeria() {
   const navigate    = useNavigate()
   const queryClient = useQueryClient()
 
-  const [modal, setModal]             = useState(null) // null | 'crea' | 'modifica' | 'reset' | 'elimina'
+  const [modal, setModal]                         = useState(null)
   const [utenteSelezionato, setUtenteSelezionato] = useState(null)
-  const [form, setForm]               = useState(FORM_VUOTO)
-  const [nuovaPassword, setNuovaPassword] = useState('')
-  const [errore, setErrore]           = useState('')
+  const [form, setForm]                           = useState(FORM_VUOTO)
+  const [nuovaPassword, setNuovaPassword]         = useState('')
+  const [errore, setErrore]                       = useState('')
 
   const { data: pizzeriaData } = useQuery({
     queryKey: ['pizzeria', id],
@@ -37,37 +37,47 @@ export default function UtentiPizzeria() {
     queryFn:  () => api.get(`/admin/pizzerie/${id}/utenti`),
   })
 
+  const ricarica = () => queryClient.invalidateQueries({ queryKey: ['utenti', id], refetchType: 'all' })
+
   const crea = useMutation({
     mutationFn: () => api.post(`/admin/pizzerie/${id}/utenti`, form),
-    onSuccess: () => { queryClient.invalidateQueries(['utenti', id]); chiudiModal() },
+    onSuccess: () => { ricarica(); chiudiModal() },
     onError:   (err) => setErrore(err?.messaggio || 'Errore nella creazione'),
   })
 
   const aggiorna = useMutation({
-    mutationFn: () => api.put(`/admin/pizzerie/${id}/utenti/${utenteSelezionato.id}`, {
-      nome:               form.nome,
-      tipo:               form.tipo,
-      puo_gestire_menu:   form.puo_gestire_menu,
-      puo_gestire_clienti:form.puo_gestire_clienti,
-      puo_vedere_stats:   form.puo_vedere_stats,
+    mutationFn: (utId) => api.put(`/admin/pizzerie/${id}/utenti/${utId}`, {
+      nome:                form.nome,
+      tipo:                form.tipo,
+      puo_gestire_menu:    form.puo_gestire_menu,
+      puo_gestire_clienti: form.puo_gestire_clienti,
+      puo_vedere_stats:    form.puo_vedere_stats,
     }),
-    onSuccess: () => { queryClient.invalidateQueries(['utenti', id]); chiudiModal() },
+    onSuccess: () => { ricarica(); chiudiModal() },
     onError:   (err) => setErrore(err?.messaggio || 'Errore nel salvataggio'),
   })
 
-  const riattiva = useMutation({
-    mutationFn: (utId) => api.put(`/admin/pizzerie/${id}/utenti/${utId}`, { attivo: true }),
-    onSuccess: () => queryClient.refetchQueries({ queryKey: ['utenti', id] }),
-  })
-
+  // Disattiva — soft delete (attivo = false)
   const disattiva = useMutation({
     mutationFn: (utId) => api.delete(`/admin/pizzerie/${id}/utenti/${utId}`),
-    onSuccess: () => queryClient.refetchQueries({ queryKey: ['utenti', id] }),
+    onSuccess: () => ricarica(),
+  })
+
+  // Riattiva — PATCH /riattiva
+  const riattiva = useMutation({
+    mutationFn: (utId) => api.patch(`/admin/pizzerie/${id}/utenti/${utId}/riattiva`),
+    onSuccess: () => ricarica(),
+  })
+
+  // Elimina fisico — DELETE /elimina
+  const elimina = useMutation({
+    mutationFn: (utId) => api.delete(`/admin/pizzerie/${id}/utenti/${utId}/elimina`),
+    onSuccess: () => ricarica(),
   })
 
   const resetPassword = useMutation({
-    mutationFn: () => api.post(
-      `/admin/pizzerie/${id}/utenti/${utenteSelezionato.id}/reset-password`,
+    mutationFn: (utId) => api.post(
+      `/admin/pizzerie/${id}/utenti/${utId}/reset-password`,
       { nuova_password: nuovaPassword }
     ),
     onSuccess: () => chiudiModal(),
@@ -85,7 +95,6 @@ export default function UtentiPizzeria() {
   const apriModifica = (u) => {
     setUtenteSelezionato(u)
     setForm({
-      username:            u.username,
       nome:                u.nome || '',
       tipo:                u.tipo,
       puo_gestire_menu:    u.puo_gestire_menu,
@@ -98,10 +107,10 @@ export default function UtentiPizzeria() {
 
   const set = (campo, valore) => setForm(f => ({ ...f, [campo]: valore }))
 
-  const utenti   = data?.data || []
-  const pizzeria = pizzeriaData?.data
-  const attivi   = utenti.filter(u => u.attivo)
-  const disattivi= utenti.filter(u => !u.attivo)
+  const utenti    = data?.data || []
+  const pizzeria  = pizzeriaData?.data
+  const attivi    = utenti.filter(u => u.attivo)
+  const disattivi = utenti.filter(u => !u.attivo)
 
   const FormPermessi = ({ tipo }) => tipo === 'cassiere' ? (
     <div className="border-t border-gray-100 pt-4 mt-2">
@@ -130,7 +139,7 @@ export default function UtentiPizzeria() {
       <div className="mb-8">
         <button
           onClick={() => navigate('/pizzerie')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-900 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm mb-4"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-900 rounded-xl text-sm font-medium transition-all shadow-sm mb-4"
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -151,11 +160,12 @@ export default function UtentiPizzeria() {
         </div>
       </div>
 
-      {/* Lista utenti attivi */}
+      {/* Lista */}
       {isLoading ? (
         <div className="text-center py-12 text-gray-400">Caricamento...</div>
       ) : (
         <>
+          {/* Attivi */}
           <div className="space-y-3 mb-6">
             {attivi.length === 0 && (
               <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
@@ -190,6 +200,10 @@ export default function UtentiPizzeria() {
                   <button onClick={() => { setUtenteSelezionato(u); setNuovaPassword(''); setModal('reset'); setErrore('') }}
                     className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs font-medium transition">
                     Password
+                  </button>
+                  <button onClick={() => { setUtenteSelezionato(u); setModal('disattiva') }}
+                    className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg text-xs font-medium transition">
+                    Disattiva
                   </button>
                   <button onClick={() => { setUtenteSelezionato(u); setModal('elimina') }}
                     className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition">
@@ -228,7 +242,7 @@ export default function UtentiPizzeria() {
         </>
       )}
 
-      {/* ── MODALI ── */}
+      {/* MODALI */}
       {modal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -308,7 +322,7 @@ export default function UtentiPizzeria() {
                     className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition">
                     Annulla
                   </button>
-                  <button onClick={() => aggiorna.mutate()}
+                  <button onClick={() => aggiorna.mutate(utenteSelezionato.id)}
                     disabled={aggiorna.isPending}
                     className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-500 disabled:bg-blue-300 transition">
                     {aggiorna.isPending ? 'Salvataggio...' : 'Salva modifiche'}
@@ -326,19 +340,48 @@ export default function UtentiPizzeria() {
                   <label className="block text-sm font-medium text-gray-600 mb-1">Nuova password *</label>
                   <input type="password" value={nuovaPassword}
                     onChange={e => setNuovaPassword(e.target.value)}
-                    placeholder="min 6 caratteri" minLength={6}
-                    className={inputCls} />
+                    placeholder="min 6 caratteri" minLength={6} className={inputCls} />
                 </div>
                 {errore && <p className="text-red-500 text-sm mt-3">⚠️ {errore}</p>}
                 <div className="flex gap-3 mt-5">
                   <button onClick={chiudiModal}
-                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm">
+                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition">
                     Annulla
                   </button>
-                  <button onClick={() => resetPassword.mutate()}
+                  <button onClick={() => resetPassword.mutate(utenteSelezionato.id)}
                     disabled={nuovaPassword.length < 6 || resetPassword.isPending}
                     className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-500 disabled:bg-blue-300 transition">
                     {resetPassword.isPending ? 'Salvataggio...' : 'Aggiorna password'}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* DISATTIVA */}
+            {modal === 'disattiva' && (
+              <>
+                <div className="text-3xl text-center mb-3">⏸️</div>
+                <h3 className="font-bold text-gray-900 text-center mb-1">Disattiva utente</h3>
+                <p className="text-gray-500 text-sm text-center mb-1">Stai per disattivare:</p>
+                <p className="font-semibold text-gray-900 text-center mb-2">
+                  {utenteSelezionato?.nome || utenteSelezionato?.username}
+                </p>
+                <p className="text-xs text-gray-400 text-center mb-5">
+                  L'utente non potrà accedere ma potrà essere riattivato in qualsiasi momento.
+                </p>
+                <div className="flex gap-3">
+                  <button onClick={chiudiModal}
+                    className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-200 transition">
+                    Annulla
+                  </button>
+                  <button
+                    onClick={() => {
+                      const utId = utenteSelezionato.id
+                      chiudiModal()
+                      disattiva.mutate(utId)
+                    }}
+                    className="flex-1 py-2.5 bg-orange-500 text-white rounded-xl font-semibold text-sm hover:bg-orange-600 transition">
+                    Disattiva
                   </button>
                 </div>
               </>
@@ -349,12 +392,12 @@ export default function UtentiPizzeria() {
               <>
                 <div className="text-3xl text-center mb-3">⚠️</div>
                 <h3 className="font-bold text-gray-900 text-center mb-1">Elimina utente</h3>
-                <p className="text-gray-500 text-sm text-center mb-1">Stai per eliminare:</p>
+                <p className="text-gray-500 text-sm text-center mb-1">Stai per eliminare definitivamente:</p>
                 <p className="font-semibold text-gray-900 text-center mb-2">
                   {utenteSelezionato?.nome || utenteSelezionato?.username}
                 </p>
                 <p className="text-xs text-gray-400 text-center mb-5">
-                  L'utente non potrà più accedere al sistema.
+                  Questa azione non può essere annullata.
                 </p>
                 <div className="flex gap-3">
                   <button onClick={chiudiModal}
@@ -362,9 +405,13 @@ export default function UtentiPizzeria() {
                     Annulla
                   </button>
                   <button
-                    onClick={() => { disattiva.mutate(utenteSelezionato.id); chiudiModal() }}
+                    onClick={() => {
+                      const utId = utenteSelezionato.id
+                      chiudiModal()
+                      elimina.mutate(utId)
+                    }}
                     className="flex-1 py-2.5 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 transition">
-                    Elimina
+                    Elimina definitivamente
                   </button>
                 </div>
               </>
