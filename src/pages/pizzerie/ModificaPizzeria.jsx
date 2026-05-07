@@ -25,11 +25,30 @@ function Field({ label, children, colSpan }) {
   )
 }
 
+function CampoEuro({ value, onChange }) {
+  return (
+    <input
+      type="text"
+      inputMode="decimal"
+      value={String(value).replace('.', ',')}
+      onChange={e => {
+        const raw = e.target.value.replace(/[^0-9,.]/, '').replace(',', '.')
+        onChange(raw)
+      }}
+      onBlur={e => {
+        const num = parseFloat(String(e.target.value).replace(',', '.'))
+        onChange(isNaN(num) ? 0 : Math.round(num * 100) / 100)
+      }}
+      className={inputCls}
+    />
+  )
+}
+
 export default function ModificaPizzeria() {
-  const { id }       = useParams()
-  const navigate     = useNavigate()
-  const queryClient  = useQueryClient()
-  const [form, setForm] = useState(null)
+  const { id }      = useParams()
+  const navigate    = useNavigate()
+  const queryClient = useQueryClient()
+  const [form, setForm]       = useState(null)
   const [errore, setErrore]   = useState('')
   const [salvato, setSalvato] = useState(false)
 
@@ -60,6 +79,9 @@ export default function ModificaPizzeria() {
         delivery_costo_tipo: p.delivery_costo_tipo || 'per_ordine',
         delivery_costo:    p.delivery_costo || 0,
         descrizione:       p.descrizione || '',
+        commissione_percentuale: p.commissione_percentuale || 1.00,
+        commissione_fissa:       p.commissione_fissa || 0.00,
+        commissione_mensile:     p.commissione_mensile || 0.00,
       })
     }
   }, [data])
@@ -85,13 +107,9 @@ export default function ModificaPizzeria() {
 
   return (
     <div className="p-8 max-w-2xl mx-auto">
-
-      {/* Header */}
       <div className="mb-8">
-        <button
-          onClick={() => navigate('/pizzerie')}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-900 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm mb-4"
-        >
+        <button onClick={() => navigate('/pizzerie')}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-900 rounded-xl text-sm font-medium transition-all duration-200 shadow-sm mb-4">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path d="M10 12L6 8l4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -104,11 +122,7 @@ export default function ModificaPizzeria() {
               Slug: <span className="font-mono text-blue-600">{data?.data?.slug}</span>
             </p>
           </div>
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-            data?.data?.attiva
-              ? 'bg-green-100 text-green-700'
-              : 'bg-red-100 text-red-700'
-          }`}>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${data?.data?.attiva ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
             {data?.data?.attiva ? 'Attiva' : 'Disattiva'}
           </span>
         </div>
@@ -116,16 +130,14 @@ export default function ModificaPizzeria() {
 
       <form onSubmit={e => { e.preventDefault(); setErrore(''); aggiorna.mutate() }} className="space-y-6">
 
-        {/* Dati pizzeria */}
         <Section title="Dati pizzeria" icon="🍕">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Nome pizzeria *" colSpan={2}>
-              <input value={form.nome} onChange={e => set('nome', e.target.value)}
-                required className={inputCls} />
+              <input value={form.nome} onChange={e => set('nome', e.target.value)} required className={inputCls} />
             </Field>
             <Field label="Descrizione" colSpan={2}>
               <textarea value={form.descrizione} onChange={e => set('descrizione', e.target.value)}
-                rows={2} placeholder="Descrizione breve della pizzeria..."
+                rows={2} placeholder="Descrizione breve..."
                 className="w-full px-3 py-2 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-900 text-sm resize-none" />
             </Field>
             <Field label="Tipo">
@@ -136,21 +148,17 @@ export default function ModificaPizzeria() {
               </select>
             </Field>
             <Field label="Email">
-              <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
-                className={inputCls} />
+              <input type="email" value={form.email} onChange={e => set('email', e.target.value)} className={inputCls} />
             </Field>
             <Field label="Telefono">
-              <input value={form.telefono} onChange={e => set('telefono', e.target.value)}
-                className={inputCls} />
+              <input value={form.telefono} onChange={e => set('telefono', e.target.value)} className={inputCls} />
             </Field>
             <Field label="Cellulare">
-              <input value={form.cellulare} onChange={e => set('cellulare', e.target.value)}
-                className={inputCls} />
+              <input value={form.cellulare} onChange={e => set('cellulare', e.target.value)} className={inputCls} />
             </Field>
           </div>
         </Section>
 
-        {/* Indirizzo */}
         <Section title="Indirizzo" icon="📍">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Via" colSpan={2}>
@@ -171,7 +179,6 @@ export default function ModificaPizzeria() {
           </div>
         </Section>
 
-        {/* Titolare */}
         <Section title="Titolare" icon="👤">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Nome titolare">
@@ -183,14 +190,46 @@ export default function ModificaPizzeria() {
           </div>
         </Section>
 
-        {/* Slot */}
+        <Section title="Commissioni" icon="💰">
+          <p className="text-gray-500 text-sm mb-4">
+            Commissioni applicate a questa pizzeria per l'utilizzo del servizio
+          </p>
+          <div className="grid grid-cols-3 gap-4">
+            <Field label="Commissione %">
+              <div className="relative">
+                <CampoEuro
+                  value={form.commissione_percentuale}
+                  onChange={v => set('commissione_percentuale', v)}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">%</span>
+              </div>
+            </Field>
+            <Field label="Commissione fissa">
+              <div className="relative">
+                <CampoEuro
+                  value={form.commissione_fissa}
+                  onChange={v => set('commissione_fissa', v)}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">€</span>
+              </div>
+            </Field>
+            <Field label="Commissione mensile">
+              <div className="relative">
+                <CampoEuro
+                  value={form.commissione_mensile}
+                  onChange={v => set('commissione_mensile', v)}
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">€/mese</span>
+              </div>
+            </Field>
+          </div>
+        </Section>
+
         <Section title="Slot ordini" icon="⏰">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Durata slot">
               <select value={form.slot_minuti} onChange={e => set('slot_minuti', parseInt(e.target.value))} className={inputCls}>
-                {[5, 10, 15, 20, 30].map(v => (
-                  <option key={v} value={v}>{v} minuti</option>
-                ))}
+                {[5, 10, 15, 20, 30].map(v => <option key={v} value={v}>{v} minuti</option>)}
               </select>
             </Field>
             <Field label="Max pizze per slot">
@@ -200,54 +239,33 @@ export default function ModificaPizzeria() {
           </div>
         </Section>
 
-        {/* Delivery */}
         <Section title="Delivery" icon="🛵">
           <div className="space-y-4">
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <div
                 onClick={() => set('delivery_attivo', !form.delivery_attivo)}
-                className={`w-11 h-6 rounded-full transition-colors duration-200 flex items-center px-0.5 cursor-pointer ${
-                  form.delivery_attivo ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
+                className={`w-11 h-6 rounded-full transition-colors duration-200 flex items-center px-0.5 cursor-pointer ${form.delivery_attivo ? 'bg-blue-600' : 'bg-gray-200'}`}
               >
-                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${
-                  form.delivery_attivo ? 'translate-x-5' : 'translate-x-0'
-                }`} />
+                <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${form.delivery_attivo ? 'translate-x-5' : 'translate-x-0'}`} />
               </div>
               <span className="font-medium text-gray-700">Consegna a domicilio attiva</span>
             </label>
             {form.delivery_attivo && (
               <div className="grid grid-cols-2 gap-4 pt-2 border-t border-gray-100">
                 <Field label="Tipo costo">
-                  <select value={form.delivery_costo_tipo}
-                    onChange={e => set('delivery_costo_tipo', e.target.value)} className={inputCls}>
+                  <select value={form.delivery_costo_tipo} onChange={e => set('delivery_costo_tipo', e.target.value)} className={inputCls}>
                     <option value="per_ordine">Fisso per ordine</option>
                     <option value="per_pizza">Per pizza ordinata</option>
                   </select>
                 </Field>
                 <Field label="Costo (€)">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={String(form.delivery_costo).replace('.', ',')}
-                    onChange={e => {
-                      const raw = e.target.value.replace(/[^0-9,.]/, '').replace(',', '.')
-                      set('delivery_costo', raw)
-                    }}
-                    onBlur={e => {
-                      const num = parseFloat(String(e.target.value).replace(',', '.'))
-                      set('delivery_costo', isNaN(num) ? 0 : Math.round(num * 100) / 100)
-                    }}
-                    placeholder="es: 3,00"
-                    className={inputCls}
-                  />
+                  <CampoEuro value={form.delivery_costo} onChange={v => set('delivery_costo', v)} />
                 </Field>
               </div>
             )}
           </div>
         </Section>
 
-        {/* Feedback */}
         {errore && (
           <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
             <p className="text-red-600 text-sm font-medium">⚠️ {errore}</p>
@@ -261,7 +279,7 @@ export default function ModificaPizzeria() {
 
         <div className="flex gap-3 pt-2 pb-8">
           <button type="button" onClick={() => navigate('/pizzerie')}
-            className="flex-1 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition">
+            className="flex-1 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-xl transition">
             Annulla
           </button>
           <button type="submit" disabled={aggiorna.isPending}
@@ -269,7 +287,6 @@ export default function ModificaPizzeria() {
             {aggiorna.isPending ? 'Salvataggio...' : 'Salva modifiche'}
           </button>
         </div>
-
       </form>
     </div>
   )
