@@ -63,7 +63,8 @@ const FORM_VUOTO = { descrizione: '', categoria: 'extra', prezzo: '0', nota: '',
 
 export default function IngredientiDefault() {
   const queryClient = useQueryClient()
-  const fileInputRef = useRef(null)
+  const fileInputRef     = useRef(null)
+  const fileInputPizzaRef = useRef(null)
 
   const [showModal, setShowModal]             = useState(false)
   const [editId, setEditId]                   = useState(null)
@@ -71,8 +72,11 @@ export default function IngredientiDefault() {
   const [categoriaFiltro, setCategoriaFiltro] = useState(null)
   const [errore, setErrore]                   = useState('')
   const [confermaElimina, setConfermaElimina] = useState(null)
+  const [confermaSync, setConfermaSync]       = useState(null)
   const [iconaPreview, setIconaPreview]       = useState(null)
   const [iconaFile, setIconaFile]             = useState(null)
+  const [pizzaPreview, setPizzaPreview]       = useState(null)
+  const [pizzaFile, setPizzaFile]             = useState(null)
   const [form, setForm]                       = useState(FORM_VUOTO)
 
   const { data, isLoading } = useQuery({
@@ -85,16 +89,18 @@ export default function IngredientiDefault() {
       const res = await api.post('/admin/ingredienti', {
         ...form, prezzo: parseFloat(String(form.prezzo).replace(',', '.')) || 0
       })
-      if (iconaFile && res.data?.id) {
-        const fd = new FormData()
-        fd.append('icona', iconaFile)
-        await api.post(`/admin/ingredienti/${res.data.id}/icona`, fd, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+      const id = res.data?.id
+      if (id && iconaFile) {
+        const fd = new FormData(); fd.append('icona', iconaFile)
+        await api.post(`/admin/ingredienti/${id}/icona`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      }
+      if (id && pizzaFile) {
+        const fd = new FormData(); fd.append('immagine', pizzaFile)
+        await api.post(`/admin/ingredienti/${id}/immagine-pizza`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       }
       return res
     },
-    onSuccess: () => { queryClient.invalidateQueries(['ingredienti-default']); chiudiModal() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ingredienti-default'] }); chiudiModal() },
     onError:   (err) => setErrore(err?.messaggio || 'Errore nella creazione'),
   })
 
@@ -104,14 +110,15 @@ export default function IngredientiDefault() {
         ...form, prezzo: parseFloat(String(form.prezzo).replace(',', '.')) || 0
       })
       if (iconaFile) {
-        const fd = new FormData()
-        fd.append('icona', iconaFile)
-        await api.post(`/admin/ingredienti/${editId}/icona`, fd, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        })
+        const fd = new FormData(); fd.append('icona', iconaFile)
+        await api.post(`/admin/ingredienti/${editId}/icona`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
+      }
+      if (pizzaFile) {
+        const fd = new FormData(); fd.append('immagine', pizzaFile)
+        await api.post(`/admin/ingredienti/${editId}/immagine-pizza`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       }
     },
-    onSuccess: () => { queryClient.invalidateQueries(['ingredienti-default']); chiudiModal() },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ingredienti-default'] }); chiudiModal() },
     onError:   (err) => setErrore(err?.messaggio || 'Errore nel salvataggio'),
   })
 
@@ -120,14 +127,20 @@ export default function IngredientiDefault() {
     onSuccess: () => queryClient.invalidateQueries(['ingredienti-default']),
   })
 
+  const sync = useMutation({
+    mutationFn: (id) => api.post(`/admin/ingredienti/${id}/sync`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['ingredienti-default'] }); setConfermaSync(null) },
+  })
+
   const apriNuovo = () => {
     setForm(FORM_VUOTO)
     setEditId(null)
-    setIconaPreview(null)
-    setIconaFile(null)
+    setIconaPreview(null); setIconaFile(null)
+    setPizzaPreview(null); setPizzaFile(null)
     setErrore('')
     setShowModal(true)
     if (fileInputRef.current) fileInputRef.current.value = ''
+    if (fileInputPizzaRef.current) fileInputPizzaRef.current.value = ''
   }
 
   const apriModifica = (ing) => {
@@ -139,21 +152,23 @@ export default function IngredientiDefault() {
       allergeni:   ing.allergeni || [],
     })
     setEditId(ing.id)
-    setIconaPreview(ing.icona_url || null)
-    setIconaFile(null)
+    setIconaPreview(ing.icona_url || null); setIconaFile(null)
+    setPizzaPreview(ing.immagine_pizza_url || null); setPizzaFile(null)
     setErrore('')
     setShowModal(true)
     if (fileInputRef.current) fileInputRef.current.value = ''
+    if (fileInputPizzaRef.current) fileInputPizzaRef.current.value = ''
   }
 
   const chiudiModal = () => {
     setShowModal(false)
     setEditId(null)
     setForm(FORM_VUOTO)
-    setIconaPreview(null)
-    setIconaFile(null)
+    setIconaPreview(null); setIconaFile(null)
+    setPizzaPreview(null); setPizzaFile(null)
     setErrore('')
     if (fileInputRef.current) fileInputRef.current.value = ''
+    if (fileInputPizzaRef.current) fileInputPizzaRef.current.value = ''
   }
 
   const handleIconaChange = (e) => {
@@ -161,6 +176,13 @@ export default function IngredientiDefault() {
     if (!file) return
     setIconaFile(file)
     setIconaPreview(URL.createObjectURL(file))
+  }
+
+  const handlePizzaChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setPizzaFile(file)
+    setPizzaPreview(URL.createObjectURL(file))
   }
 
   const toggleAllergene = (id) => {
@@ -211,22 +233,37 @@ export default function IngredientiDefault() {
           </button>
         </div>
 
-        {/* Filtri categoria */}
-        <div className="flex gap-2 flex-wrap mb-4">
-          <button onClick={() => setCategoriaFiltro(null)}
-            style={!categoriaFiltro ? { backgroundColor: '#1e40af', color: '#fff' } : { backgroundColor: '#f3f4f6', color: '#374151' }}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold transition">
-            Tutti ({tutti.length})
-          </button>
-          {CATEGORIE.map(cat => {
-            const count = tutti.filter(i => i.categoria === cat.id).length
-            const attivo = categoriaFiltro === cat.id
+        {/* Filtri categoria — griglia 3 colonne allineate */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, auto)',
+          justifyContent: 'start',
+          gap: 6,
+          marginBottom: 16,
+        }}>
+          {[{ id: null, emoji: '🍕', label: 'Tutti', count: tutti.length }, ...CATEGORIE.map(cat => ({
+            id: cat.id, emoji: cat.emoji, label: cat.label,
+            count: tutti.filter(i => i.categoria === cat.id).length,
+          }))].map(cat => {
+            const sel = categoriaFiltro === cat.id
             return (
-              <button key={cat.id}
-                onClick={() => setCategoriaFiltro(attivo ? null : cat.id)}
-                style={attivo ? { backgroundColor: '#1e40af', color: '#fff' } : { backgroundColor: '#f3f4f6', color: '#374151' }}
-                className="px-3 py-1.5 rounded-full text-xs font-semibold transition">
-                {cat.emoji} {cat.label} ({count})
+              <button key={cat.id ?? '__tutti'}
+                onClick={() => setCategoriaFiltro(sel && cat.id !== null ? null : cat.id)}
+                style={sel
+                  ? { backgroundColor: '#1e40af', color: '#fff' }
+                  : { backgroundColor: '#f3f4f6', color: '#374151' }}
+                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition whitespace-nowrap">
+                {cat.emoji && <span className="mr-1">{cat.emoji}</span>}
+                {cat.label}
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  minWidth: 18, height: 18, borderRadius: '50%', marginLeft: 6,
+                  fontSize: 10, fontWeight: 700,
+                  background: sel ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.09)',
+                  color: 'inherit',
+                }}>
+                  {cat.count}
+                </span>
               </button>
             )
           })}
@@ -280,6 +317,11 @@ export default function IngredientiDefault() {
                           className="px-2.5 py-1 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-medium transition">
                           Elimina
                         </button>
+                        <button onClick={() => setConfermaSync(ing)}
+                          title="Sincronizza con tutte le pizzerie"
+                          className="w-7 h-7 flex items-center justify-center bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg transition text-sm">
+                          🔄
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -331,6 +373,36 @@ export default function IngredientiDefault() {
                   <input ref={fileInputRef} type="file"
                     accept="image/jpeg,image/png,image/webp"
                     onChange={handleIconaChange} className="hidden" />
+                </div>
+              </div>
+
+              {/* Immagine pizza upload */}
+              <div className="flex items-center gap-4 p-3 bg-gray-50 rounded-xl">
+                <div className="relative flex-shrink-0">
+                  <div style={{
+                    width: 64, height: 64, borderRadius: 12,
+                    background: 'repeating-conic-gradient(#e5e7eb 0% 25%, #fff 0% 50%) 0 0 / 12px 12px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                  }}>
+                    {pizzaPreview
+                      ? <img src={pizzaPreview} style={{ width: 64, height: 64, objectFit: 'contain' }} alt="pizza" />
+                      : <span style={{ fontSize: 22 }}>🍕</span>
+                    }
+                  </div>
+                  {pizzaFile && (
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
+                  )}
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">Immagine pizza (composizione)</p>
+                  <p className="text-xs text-gray-400 mb-2">PNG trasparente — 500×500px consigliato</p>
+                  <button type="button" onClick={() => fileInputPizzaRef.current?.click()}
+                    className="px-3 py-1.5 bg-white border border-gray-200 hover:border-gray-300 text-gray-600 rounded-lg text-xs font-medium transition">
+                    {pizzaFile ? 'Cambia immagine' : 'Carica PNG'}
+                  </button>
+                  <input ref={fileInputPizzaRef} type="file"
+                    accept="image/png"
+                    onChange={handlePizzaChange} className="hidden" />
                 </div>
               </div>
 
@@ -438,6 +510,35 @@ export default function IngredientiDefault() {
           </div>
         </div>
       )}
+      {/* Modal conferma sync */}
+      {confermaSync && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <div className="text-3xl mb-3 text-center">🔄</div>
+            <h3 className="font-bold text-gray-900 text-center mb-2">Sincronizza con le pizzerie</h3>
+            <p className="text-gray-500 text-sm text-center mb-1">Stai per propagare i dati di:</p>
+            <p className="font-semibold text-gray-900 text-center mb-3">"{confermaSync.descrizione}"</p>
+            <div className="bg-blue-50 rounded-xl p-3 mb-5 text-xs text-blue-700 space-y-1">
+              <p>✓ Descrizione, icona, immagine pizza</p>
+              <p>✓ Allergeni, nota, categoria</p>
+              <p className="text-blue-400">✗ Prezzo (rimane quello della pizzeria)</p>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setConfermaSync(null)}
+                className="flex-1 py-2.5 bg-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-300 transition">
+                Annulla
+              </button>
+              <button
+                onClick={() => sync.mutate(confermaSync.id)}
+                disabled={sync.isPending}
+                className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-sm hover:bg-blue-700 disabled:bg-blue-300 transition">
+                {sync.isPending ? 'Sincronizzazione...' : 'Sincronizza'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
