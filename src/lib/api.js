@@ -9,7 +9,7 @@ const api = axios.create({
 })
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('pizzazen_admin_token')
+  const token = localStorage.getItem('pizzapax_admin_token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -18,8 +18,8 @@ api.interceptors.response.use(
   (response) => response.data,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('pizzazen_admin_token')
-      localStorage.removeItem('pizzazen_admin_utente')
+      localStorage.removeItem('pizzapax_admin_token')
+      localStorage.removeItem('pizzapax_admin_utente')
       window.location.href = '/admin/login'
     }
     return Promise.reject(error.response?.data || error)

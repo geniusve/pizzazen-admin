@@ -8,8 +8,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const token = localStorage.getItem('pizzazen_admin_token')
-    const saved = localStorage.getItem('pizzazen_admin_utente')
+    const token = localStorage.getItem('pizzapax_admin_token')
+    const saved = localStorage.getItem('pizzapax_admin_utente')
     if (token && saved) setUtente(JSON.parse(saved))
     setLoading(false)
   }, [])
@@ -17,15 +17,15 @@ export function AuthProvider({ children }) {
   const login = async (username, password) => {
     const res = await api.post('/auth/admin/login', { username, password })
     const { token, utente } = res.data
-    localStorage.setItem('pizzazen_admin_token', token)
-    localStorage.setItem('pizzazen_admin_utente', JSON.stringify(utente))
+    localStorage.setItem('pizzapax_admin_token', token)
+    localStorage.setItem('pizzapax_admin_utente', JSON.stringify(utente))
     setUtente(utente)
     return utente
   }
 
   const logout = () => {
-    localStorage.removeItem('pizzazen_admin_token')
-    localStorage.removeItem('pizzazen_admin_utente')
+    localStorage.removeItem('pizzapax_admin_token')
+    localStorage.removeItem('pizzapax_admin_utente')
     setUtente(null)
   }
 

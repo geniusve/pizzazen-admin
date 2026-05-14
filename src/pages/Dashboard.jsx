@@ -2,7 +2,7 @@ export default function Dashboard() {
   return (
     <div className="p-8">
       <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
-      <p className="text-gray-500 mb-8">Benvenuto nel pannello di amministrazione PizzaZen</p>
+      <p className="text-gray-500 mb-8">Benvenuto nel pannello di amministrazione PizzaPax</p>
       <div className="grid grid-cols-3 gap-6">
         {[
           { label: 'Pizzerie attive', value: '—', icon: '🍕', color: 'bg-orange-50 text-orange-600' },

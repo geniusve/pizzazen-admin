@@ -37,7 +37,7 @@ export default function Login() {
           <div className="inline-flex items-center justify-center w-20 h-20 bg-blue-600 rounded-2xl mb-4 shadow-2xl">
             <span className="text-4xl">🍕</span>
           </div>
-          <h1 className="text-4xl font-black text-white tracking-tight">PizzaZen</h1>
+          <h1 className="text-4xl font-black text-white tracking-tight">PizzaPax</h1>
           <p className="text-blue-400 mt-1 text-sm font-medium tracking-widest uppercase">
             Pannello Amministrazione
           </p>
@@ -95,7 +95,7 @@ export default function Login() {
         </div>
 
         <p className="text-center text-slate-600 text-xs mt-6">
-          PizzaZen © 2026 — Area riservata
+          PizzaPax © 2026 — Area riservata
         </p>
       </div>
     </div>

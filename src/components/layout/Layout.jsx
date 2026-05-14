@@ -30,7 +30,7 @@ export default function Layout({ children }) {
               🍕
             </div>
             <div>
-              <h1 className="text-white font-black text-lg leading-none">PizzaZen</h1>
+              <h1 className="text-white font-black text-lg leading-none">PizzaPax</h1>
               <p className="text-blue-400 text-xs font-medium">Admin</p>
             </div>
           </div>
