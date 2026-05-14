@@ -5,6 +5,7 @@ const navItems = [
   { path: '/dashboard',   icon: '📊', label: 'Dashboard' },
   { path: '/pizzerie',    icon: '🍕', label: 'Pizzerie' },
   { path: '/ingredienti', icon: '🥗', label: 'Ingredienti' },
+  { path: '/clienti',     icon: '👤', label: 'Clienti' },
 ]
 
 export default function Layout({ children }) {

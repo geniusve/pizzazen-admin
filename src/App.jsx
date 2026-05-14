@@ -8,6 +8,7 @@ import NuovaPizzeria from '@/pages/pizzerie/NuovaPizzeria'
 import ModificaPizzeria from '@/pages/pizzerie/ModificaPizzeria'
 import UtentiPizzeria from '@/pages/pizzerie/UtentiPizzeria'
 import IngredientiDefault from '@/pages/ingredienti/IngredientiDefault'
+import ListaClienti from '@/pages/clienti/ListaClienti'
 
 function ProtectedRoute({ children }) {
   const { utente, loading } = useAuth()
@@ -30,6 +31,7 @@ export default function App() {
       <Route path="/pizzerie/:id" element={<ProtectedRoute><ModificaPizzeria /></ProtectedRoute>} />
       <Route path="/pizzerie/:id/utenti" element={<ProtectedRoute><UtentiPizzeria /></ProtectedRoute>} />
       <Route path="/ingredienti" element={<ProtectedRoute><IngredientiDefault /></ProtectedRoute>} />
+      <Route path="/clienti"     element={<ProtectedRoute><ListaClienti /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   )
